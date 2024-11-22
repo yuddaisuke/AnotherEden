@@ -52,8 +52,9 @@ class AndroidUSB(__OSEssentials):
                          "lock": "KEYCODE_SOFT_SLEEP",
                          "end_call": "KEYCODE_ENDCALL"}
 
-    def __init__(self, device_sn, restart_device=False):
+    def __init__(self, device_sn, restart_device=False, verbose=False):
         """ Initialize the the class to get basic info on the connected device, and this assumes drivers are already installed and user has tested it. """
+        self._verbose = verbose
 
         # The Phone Serial is automatically passed by the user.
         self.serial_number = device_sn
@@ -193,7 +194,8 @@ class AndroidUSB(__OSEssentials):
     def get_screen_orientation(self):
         """ Checks the current screen orientation. """
         self._check_screen_orientation()
-        print("[ %s ] >> [ANDROID] Screen Orientation = %s." % (self._get_pc_time(), self.screen_orientation.upper()))
+        if self._verbose:
+            print("[ %s ] >> [ANDROID] Screen Orientation = %s." % (self._get_pc_time(), self.screen_orientation.upper()))
 
         return self.screen_orientation
 
@@ -232,18 +234,20 @@ class AndroidUSB(__OSEssentials):
     def get_screen_resolution(self):
         # Check screen orientation.
         self._check_screen_orientation()
-        print("[ %s ] >> [ANDROID] Screen Orientation = %s." % (self._get_pc_time(), self.screen_orientation.upper()))
+        if self._verbose:
+            print("[ %s ] >> [ANDROID] Screen Orientation = %s." % (self._get_pc_time(), self.screen_orientation.upper()))
 
         # Check the screen resolution parameters.
         self._check_screen_resolution()
-        print("[ %s ] >> [ANDROID] Screen Size = (X,Y) = (%s, %s)." % (self._get_pc_time(), self.screen_resolution[0], self.screen_resolution[1]))
+        if self._verbose:
+            print("[ %s ] >> [ANDROID] Screen Size = (X,Y) = (%s, %s)." % (self._get_pc_time(), self.screen_resolution[0], self.screen_resolution[1]))
         
         return self.screen_resolution
 
     def send_keycode(self, keycode_string):
         """ Sends a keycode event """
         command_to_send = "shell input keyevent {keycode}".format(keycode=keycode_string)
-        _ = self._send_command(command=command_to_send, print_command=True)
+        _ = self._send_command(command=command_to_send, print_command=self._verbose)
 
     def send_event(self, supported_event):
         """ Sends a keycode as an event name that is supported """
@@ -257,12 +261,14 @@ class AndroidUSB(__OSEssentials):
         """ Perform a tap to the given X and Y coordinate repeatedly based on repeat_count value at an interval of repeat_interval_ms (milliseconds). """
         if (x <= self.screen_resolution[0] and y<= self.screen_resolution[1]):
             for loop_number in range(repeat_count):
-                print("[ %s ] >> [ANDROID] Performing Screen tap at (X,Y) = (%s,%s)." % (self._get_pc_time(), x, y))
+                if self._verbose:
+                    print("[ %s ] >> [ANDROID] Performing Screen tap at (X,Y) = (%s,%s)." % (self._get_pc_time(), x, y))
                 command_to_send = "shell input tap {x} {y}".format(x=x, y=y)
-                _ = self._send_command(command=command_to_send, print_command=True)
+                _ = self._send_command(command=command_to_send, print_command=self._verbose)
 
                 if (repeat_count > 1 and loop_number < (repeat_count - 1)):
-                    print("[ %s ] >> [ANDROID] Waiting %s ms before tapping screen again." % (self._get_pc_time(), repeat_interval_ms))
+                    if self._verbose:
+                        print("[ %s ] >> [ANDROID] Waiting %s ms before tapping screen again." % (self._get_pc_time(), repeat_interval_ms))
                     time.sleep(repeat_interval_ms / 1000)
         else:
             print("[ %s ] >> [ANDROID] Error, the X & Y coordinate (%s,%s) given are out of range!" % (self._get_pc_time(), x, y))
@@ -270,43 +276,48 @@ class AndroidUSB(__OSEssentials):
     def perform_swipe(self, coord1, coord2, length_ms=3000):
         """ Perform a swipe for length_ms (milliseconds) from coord1 (x1,y1) to coord2 (x2,y2) """
         if (coord1[0] <= self.screen_resolution[0] and coord1[1]<= self.screen_resolution[1]) and (coord2[0] <= self.screen_resolution[0] and coord2[1]<= self.screen_resolution[1]):
-            print("[ %s ] >> [ANDROID] Performing Swipe from (%s,%s) to (%s, %s)" % (self._get_pc_time(), coord1[0], coord1[1], coord2[0], coord2[1]))
+            if self._verbose:
+                print("[ %s ] >> [ANDROID] Performing Swipe from (%s,%s) to (%s, %s)" % (self._get_pc_time(), coord1[0], coord1[1], coord2[0], coord2[1]))
             command_to_send = "shell input swipe {x1} {y1} {x2} {y2} {duration_ms}".format(x1=coord1[0],
                                                                                            y1=coord1[1],
                                                                                            x2=coord2[0],
                                                                                            y2=coord2[1],
                                                                                            duration_ms=length_ms)
-            _ = self._send_command(command=command_to_send, print_command=True)
+            _ = self._send_command(command=command_to_send, print_command=self._verbose)
         else:
             print("[ %s ] >> [ANDROID] Error, One or more X & Y coordinate given are out of range!" % (self._get_pc_time()))
 
     def type_text(self, text):
         """ Types some text on the screen. """
-        print("[ %s ] >> [ANDROID] Sending text: %s" % (self._get_pc_time(), text))
+        if self._verbose:
+            print("[ %s ] >> [ANDROID] Sending text: %s" % (self._get_pc_time(), text))
         text_for_android_cmd = text.replace(" ", "%s")
 
         command_to_send = 'shell input text "{text}"'.format(text=text_for_android_cmd)
-        _ = self._send_command(command=command_to_send, print_command=True)
+        _ = self._send_command(command=command_to_send, print_command=self._verbose)
 
     def take_screenshot(self, name):
         """ Takes a screenshot on the Android phone. """
         image_file = "/sdcard/Pictures/" + name
-        print("[ %s ] >> [ANDROID] Taking Screenshot." % (self._get_pc_time()))
+        if self._verbose:
+            print("[ %s ] >> [ANDROID] Taking Screenshot." % (self._get_pc_time()))
         
         command_to_send = 'shell screencap {image_file}'.format(image_file=image_file)
-        _ = self._send_command(command=command_to_send, print_command=True)
+        _ = self._send_command(command=command_to_send, print_command=self._verbose)
 
     def pop_screenshot(self, name, output_location):
         """ Pulls the screenshot from the Android phone and then removes it from the phone. """
         image_file = "/sdcard/Pictures/" + name
 
-        print("[ %s ] >> [ANDROID] Pulling image file: %s" % (self._get_pc_time(), image_file))
+        if self._verbose:
+            print("[ %s ] >> [ANDROID] Pulling image file: %s" % (self._get_pc_time(), image_file))
         command_to_send = 'pull {image_file} {output_location}'.format(image_file=image_file, output_location=output_location)
-        _ = self._send_command(command=command_to_send, print_command=True)
+        _ = self._send_command(command=command_to_send, print_command=self._verbose)
 
-        print("[ %s ] >> [ANDROID] Removing image file: %s" % (self._get_pc_time(), image_file))
+        if self._verbose:
+            print("[ %s ] >> [ANDROID] Removing image file: %s" % (self._get_pc_time(), image_file))
         command_to_send = 'shell "rm {image_file}"'.format(image_file=image_file)
-        _ = self._send_command(command=command_to_send, print_command=True)
+        _ = self._send_command(command=command_to_send, print_command=self._verbose)
 
     def TearDown(self):
         """Closes the connection to the device."""
